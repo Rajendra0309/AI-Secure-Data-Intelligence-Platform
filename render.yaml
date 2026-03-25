@@ -1,0 +1,65 @@
+services:
+  - type: web
+    name: asdip-ai-service
+    runtime: python
+    rootDir: ai-service
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        value: llama-3.1-8b-instant
+      - key: LLM_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: LLM_PROVIDER_NAME
+        value: groq
+      - key: LLM_FALLBACK_API_KEY
+        sync: false
+      - key: LLM_FALLBACK_MODEL
+        value: meta-llama/llama-3.1-8b-instruct:free
+      - key: LLM_FALLBACK_BASE_URL
+        value: https://openrouter.ai/api/v1
+      - key: LLM_FALLBACK_PROVIDER_NAME
+        value: openrouter
+
+  - type: web
+    name: asdip-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: AI_SERVICE_URL
+        value: https://asdip-ai-service.onrender.com
+      - key: MONGODB_URI
+        sync: false
+
+  - type: static
+    name: asdip-frontend
+    rootDir: frontend
+    plan: free
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: VITE_API_BASE_URL
+        value: https://asdip-backend.onrender.com/api
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -1,0 +1,27 @@
+services:
+  backend:
+    build: ./backend
+    container_name: asdip-backend
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - AI_SERVICE_URL=http://ai-service:8000
+    depends_on:
+      - ai-service
+
+  ai-service:
+    build: ./ai-service
+    container_name: asdip-ai-service
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    container_name: asdip-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:4000/api
+    depends_on:
+      - backend
