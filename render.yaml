@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+version: "1"
 services:
   - type: web
     name: asdip-ai-service
@@ -47,8 +49,9 @@ services:
       - key: MONGODB_URI
         sync: false
 
-  - type: static
+  - type: web
     name: asdip-frontend
+    runtime: static
     rootDir: frontend
     plan: free
     buildCommand: npm ci && npm run build
