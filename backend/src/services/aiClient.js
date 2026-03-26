@@ -30,10 +30,13 @@ function isTransientError(error) {
 
 function buildUpstreamUnavailableError(lastError) {
   const statusCode = lastError?.response?.status;
+  const retryAfterHeader = lastError?.response?.headers?.['retry-after'];
+  const retryAfterSeconds = Number.parseInt(retryAfterHeader, 10);
   const error = new Error(
     `AI service temporarily unavailable${statusCode ? ` (upstream status ${statusCode})` : ''}. Please retry in a few seconds.`
   );
   error.status = 503;
+  error.retryAfterSeconds = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0 ? retryAfterSeconds : 20;
   return error;
 }
 

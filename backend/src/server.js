@@ -46,14 +46,22 @@ app.use((err, req, res, next) => {
   console.error('[ERROR]', err.message);
   console.error('[ERROR] Stack:', err.stack);
   const status = err.status || 500;
+  const retryAfterSeconds = status === 503 && Number.isFinite(err.retryAfterSeconds)
+    ? err.retryAfterSeconds
+    : undefined;
   const message =
     process.env.NODE_ENV === 'development' || status === 503
       ? err.message
       : 'Something went wrong while processing your request.';
+
+  if (retryAfterSeconds) {
+    res.set('Retry-After', String(retryAfterSeconds));
+  }
   
   res.status(status).json({
     error: 'Internal server error',
     message,
+    retry_after_seconds: retryAfterSeconds,
     details: process.env.NODE_ENV === 'development' ? err.stack : undefined,
   });
 });

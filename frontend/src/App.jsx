@@ -7,6 +7,39 @@ const SAMPLE_LOGS = {
   lowRisk: `2026-03-10 10:00:01 INFO Health check passed\n2026-03-10 10:00:02 INFO User session started\n2026-03-10 10:00:03 INFO Request completed in 120ms`,
 }
 
+const DEFAULT_RETRY_SECONDS = 20
+
+async function parseApiError(response, fallbackMessage) {
+  const retryAfterHeader = Number.parseInt(response.headers.get('Retry-After') || '', 10)
+  const fallbackRetrySeconds = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
+    ? retryAfterHeader
+    : undefined
+
+  try {
+    const payload = await response.json()
+    const retryAfterSeconds = Number.isFinite(payload?.retry_after_seconds) && payload.retry_after_seconds > 0
+      ? payload.retry_after_seconds
+      : fallbackRetrySeconds
+
+    if (retryAfterSeconds && response.status === 503) {
+      return `AI service is temporarily busy. Please wait ${retryAfterSeconds}s and retry.`
+    }
+
+    return payload?.message || payload?.error || fallbackMessage
+  } catch {
+    const text = await response.text()
+    if (fallbackRetrySeconds && response.status === 503) {
+      return `AI service is temporarily busy. Please wait ${fallbackRetrySeconds}s and retry.`
+    }
+
+    if (response.status === 503) {
+      return `AI service is temporarily busy. Please wait ${DEFAULT_RETRY_SECONDS}s and retry.`
+    }
+
+    return text || fallbackMessage
+  }
+}
+
 function App() {
   const [inputType, setInputType] = useState('log')
   const [content, setContent] = useState('')
@@ -31,8 +64,8 @@ function App() {
 
       const response = await fetch(`${apiBase}/history?page=${page}&limit=8`)
       if (!response.ok) {
-        const details = await response.text()
-        throw new Error(details || 'Failed to load history')
+        const details = await parseApiError(response, 'Failed to load history')
+        throw new Error(details)
       }
 
       const data = await response.json()
@@ -106,8 +139,8 @@ function App() {
       })
 
       if (!response.ok) {
-        const details = await response.text()
-        throw new Error(details || 'Analysis request failed')
+        const details = await parseApiError(response, 'Analysis request failed')
+        throw new Error(details)
       }
 
       const data = await response.json()
