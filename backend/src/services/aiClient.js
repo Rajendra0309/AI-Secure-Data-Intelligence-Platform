@@ -3,6 +3,8 @@ const axios = require('axios');
 const MAX_RETRIES = 3;
 const RETRY_DELAYS_MS = [800, 1600, 3000];
 const TRANSIENT_STATUS_CODES = new Set([429, 502, 503, 504]);
+const ANALYZE_TIMEOUT_MS = 90000;
+const WARMUP_TIMEOUT_MS = 15000;
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -40,15 +42,28 @@ function buildUpstreamUnavailableError(lastError) {
   return error;
 }
 
+async function warmupAiService(aiServiceUrl) {
+  try {
+    await axios.get(`${aiServiceUrl}/health`, {
+      timeout: WARMUP_TIMEOUT_MS,
+    });
+  } catch (error) {
+    // Warm-up is best-effort: analyze path below still has retries and fallback handling.
+    console.warn(`[WARN] AI service warm-up failed: ${error.message}`);
+  }
+}
+
 async function callAiService(payload) {
   const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
   const endpoint = `${aiServiceUrl}/analyze`;
+
+  await warmupAiService(aiServiceUrl);
 
   let lastError;
   for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
     try {
       const response = await axios.post(endpoint, payload, {
-        timeout: 30000,
+        timeout: ANALYZE_TIMEOUT_MS,
       });
       return response.data;
     } catch (error) {

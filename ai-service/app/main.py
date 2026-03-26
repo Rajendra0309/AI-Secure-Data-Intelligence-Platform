@@ -29,6 +29,11 @@ app.add_middleware(
 logger.info("AI Log Intelligence Service initialized")
 
 
+@app.get("/")
+def root() -> dict:
+    return {"status": "ok", "service": "ai-log-intelligence"}
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok", "service": "ai-log-intelligence"}
