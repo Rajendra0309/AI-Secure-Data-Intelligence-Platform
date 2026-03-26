@@ -5,11 +5,17 @@ from app.models.schemas import Finding
 
 PATTERNS = {
     "email": (re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"), "low"),
-    "phone": (re.compile(r"\b(?:\+\d{1,3}[\s-]?)?\d{10}\b"), "low"),
+    "phone": (
+        re.compile(
+            r"(?<![A-Za-z0-9_])(?:\+\d{1,3}[\s-]?)?(?:\(?\d{3}\)?[\s-]\d{3}[\s-]\d{4}|\d{10})(?![A-Za-z0-9_])"
+        ),
+        "low",
+    ),
     "api_key": (re.compile(r"\b(?:sk|api|key)[-_a-zA-Z0-9]{8,}\b", re.IGNORECASE), "high"),
-    "password": (re.compile(r"\bpassword\s*[=:]\s*\S+", re.IGNORECASE), "critical"),
-    "token": (re.compile(r"\btoken\s*[=:]\s*\S+", re.IGNORECASE), "high"),
-    "hardcoded_secret": (re.compile(r"secret\s*[=:]\s*\S+", re.IGNORECASE), "high"),
+    "password": (re.compile(r"\b(?:password|passwd|pwd|passphrase)\b\s*[=:]\s*\S+", re.IGNORECASE), "critical"),
+    "token": (re.compile(r"\b(?:access[_-]?token|refresh[_-]?token|id[_-]?token|token|bearer)\b\s*[=:]?\s*\S+", re.IGNORECASE), "high"),
+    "hardcoded_secret": (re.compile(r"\b(?:secret|secret[_-]?key|client[_-]?secret)\b\s*[=:]\s*\S+", re.IGNORECASE), "high"),
+    "jwt": (re.compile(r"\beyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\b"), "high"),
     "stack_trace": (re.compile(r"exception|stack trace|nullpointer|traceback", re.IGNORECASE), "medium"),
 }
 
