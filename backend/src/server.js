@@ -45,10 +45,15 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error('[ERROR]', err.message);
   console.error('[ERROR] Stack:', err.stack);
+  const status = err.status || 500;
+  const message =
+    process.env.NODE_ENV === 'development' || status === 503
+      ? err.message
+      : 'Something went wrong while processing your request.';
   
-  res.status(err.status || 500).json({
+  res.status(status).json({
     error: 'Internal server error',
-    message: err.message,
+    message,
     details: process.env.NODE_ENV === 'development' ? err.stack : undefined,
   });
 });
